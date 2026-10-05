@@ -89,6 +89,15 @@ install(
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 )
 
+if(APPLE)
+  # module/src/libcfgpath/cfgpath.h locates the per-user config directory through
+  # Carbon's FSFindFolder()/FSRefMakePath(), which live in CoreServices. The macOS
+  # linker does not chain dependencies the way ELF's DT_NEEDED does, so a framework
+  # a target actually uses has to be named on its own link line or the library fails
+  # with "Undefined symbols for architecture arm64: _FSFindFolder, _FSRefMakePath".
+  target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreServices")
+endif()
+
 mola_version_to_hexadecimal(MP2P_ICP_VERSION_HEX "${mp2p_icp_VERSION}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE MP2P_ICP_VERSION=${MP2P_ICP_VERSION_HEX})
 
