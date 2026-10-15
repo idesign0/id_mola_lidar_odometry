@@ -172,11 +172,23 @@ if(mola_state_estimation_smoother_FOUND)
   # reproducing the exact "missing plugin .so file?" runtime error this
   # whole block exists to fix -- confirmed via ldd, which showed the
   # smoother absent even after the .so linked and built without error.
-  target_link_libraries(mola-lidar-odometry-cli
-    "-Wl,--no-as-needed"
-    mola::mola_state_estimation_smoother
-    "-Wl,--as-needed"
-  )
+  # Apple's ld has no --as-needed/--no-as-needed and rejects the whole link with
+  # "ld: unknown options: --no-as-needed --as-needed". It also needs no equivalent:
+  # Mach-O records every dylib on the link line in LC_LOAD_DYLIB whether or not a
+  # symbol from it is referenced, so the smoother stays loadable for the runtime
+  # mrpt::rtti::classFactory() lookup with no flag at all. (The macOS analogue of
+  # --as-needed is -dead_strip_dylibs, which is opt-in and not used here.)
+  if(APPLE)
+    target_link_libraries(mola-lidar-odometry-cli
+      mola::mola_state_estimation_smoother
+    )
+  else()
+    target_link_libraries(mola-lidar-odometry-cli
+      "-Wl,--no-as-needed"
+      mola::mola_state_estimation_smoother
+      "-Wl,--as-needed"
+    )
+  endif()
 else()
   message(STATUS "mola-lidar-odometry-cli: With mola_state_estimation_smoother = NO")
 endif()
